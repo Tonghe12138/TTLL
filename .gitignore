@@ -1,0 +1,31 @@
+
+# FVM Version Cache
+.fvm/
+.vscode/
+.dart_tool/
+android/.gradle/
+android/local.properties
+.fvmrc
+
+linux/
+
+# Flutter 构建/pub get 自动生成物（每次构建都会变动）
+build/
+.packages
+.pub/
+.pub-cache/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# 插件注册与配置生成文件
+GeneratedPluginRegistrant.*
+generated_plugin_registrant.*
+generated_plugins.cmake
+generated_config.cmake
+Generated.xcconfig
+Flutter-Generated.xcconfig
+flutter_export_environment.sh
+flutter_native_integration.env
+
+# 各平台 ephemeral 目录
+**/ephemeral/
