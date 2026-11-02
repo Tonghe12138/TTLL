@@ -9,6 +9,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  guitar_chord_library: ^0.1.0
 
 dev_dependencies:
   flutter_test:
