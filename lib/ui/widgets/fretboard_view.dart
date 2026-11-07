@@ -3,6 +3,7 @@ import 'package:guitar_chord_helper/ui/model/guitar.dart';
 import 'package:guitar_chord_helper/ui/utils/ui_utils.dart';
 
 import 'guitar_fretborad_widget.dart';
+import 'note_widget.dart';
 
 class FretboardView extends StatefulWidget {
   const new({super.key});
@@ -77,7 +78,7 @@ class _FretboardViewState extends State<FretboardView> {
                         left: _scrollPosition,
                         child: GestureDetector(
                           onPanUpdate: (d) =>
-                              _onUpdateScaleGuitar(d, maxThumbOffset),
+                              _onUpdateScaleGuitar(d),
                           child: Container(
                             width: _thumbWidth,
                             height: 50,
@@ -111,13 +112,12 @@ class _FretboardViewState extends State<FretboardView> {
               clipBehavior: Clip.none,
               children: List.generate(Guitar.stringsCount, (index) {
                 final y = (index + 1) * stringsStep;
-                final textHeight = 20.0;
-                final halfHeight = textHeight / 2;
+                final halfHeight = GuitarUI.fretTextHeight / 2;
                 return Positioned(
                   top: y + halfHeight,
                   left: 0,
                   right: 0,
-                  height: textHeight,
+                  height: GuitarUI.fretTextHeight,
                   child: Center(
                     child: Text(
                       '${Guitar.stringsCount - index}弦',
@@ -141,8 +141,8 @@ class _FretboardViewState extends State<FretboardView> {
     double guitarHeight,
     double stringsStep,
   ) {
-        final double fretHeight = 20;
-        final totalHeigt = fretHeight + guitarHeight;
+    final double fretHeight = 20;
+    final totalHeigt = fretHeight + guitarHeight;
     return SingleChildScrollView(
       controller: _scrollController,
       scrollDirection: Axis.horizontal,
@@ -151,6 +151,14 @@ class _FretboardViewState extends State<FretboardView> {
         height: totalHeigt,
         child: Stack(
           children: [
+            // Positioned(
+            //   top:
+            //       GuitarUI.fretTextHeight + stringsStep - GuitarUI.noteSize / 2,
+            //   left: GuitarUI.fretStep / 2 - GuitarUI.noteSize / 2,
+            //   height: GuitarUI.noteSize,
+            //   width: GuitarUI.noteSize,
+            //   child: NoteWidget(),
+            // ),
             Positioned(
               top: fretHeight,
               child: CustomPaint(
@@ -172,13 +180,36 @@ class _FretboardViewState extends State<FretboardView> {
                   child: Center(
                     child: Text(
                       '${i + 1}品',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                      ),
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
                     ),
                   ),
                 ),
+              ),
+            ),
+            
+            Positioned(
+              top: 0,
+              left: 0,
+              width: guitarWidth,
+              height: guitarHeight,
+              child: GridView.builder(
+                itemCount: _guitar.fretCount.count * Guitar.stringsCount,
+                shrinkWrap: false,
+                physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets.only(
+                  top:
+                      GuitarUI.fretTextHeight +
+                      stringsStep -
+                      GuitarUI.noteTouchSize / 2,
+                  left: 0,
+                ),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: _guitar.fretCount.count,
+                  mainAxisSpacing: stringsStep - GuitarUI.noteTouchSize,
+                  crossAxisSpacing: 0,
+                  childAspectRatio: GuitarUI.fretStep / GuitarUI.noteTouchSize,
+                ),
+                itemBuilder: _buildAllNoteArea,
               ),
             ),
           ],
@@ -207,7 +238,7 @@ class _FretboardViewState extends State<FretboardView> {
     });
   }
 
-  void _onUpdateScaleGuitar(DragUpdateDetails details, double maxThumbOffset) {
+  void _onUpdateScaleGuitar(DragUpdateDetails details) {
     if (!_scrollController.hasClients) return;
 
     final maxThumbOffset = trackWidth - _thumbWidth;
@@ -227,5 +258,9 @@ class _FretboardViewState extends State<FretboardView> {
 
     // jumpTo 会触发 _onScroll，由监听器同步 UI
     _scrollController.jumpTo(scrollOffset);
+  }
+
+  Widget? _buildAllNoteArea(BuildContext context, int index) {
+    return NoteWidget(index: index);
   }
 }

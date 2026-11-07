@@ -1,3 +1,5 @@
+import '../../core/music/guitar_tunning.dart';
+
 enum FretCount {
   _21(21),
   _22(22),
@@ -11,7 +13,8 @@ enum FretCount {
 
 class Guitar {
   static const stringsCount = 6;
-  FretCount fretCount;
+  final FretCount fretCount;
+  final GuitarTuning tuning;
 
-  Guitar({this.fretCount = FretCount._24});
+  Guitar({this.fretCount = FretCount._24, this.tuning = GuitarTuning.standard});
 }

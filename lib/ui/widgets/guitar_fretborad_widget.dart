@@ -33,7 +33,6 @@ class GuitarFretboradPainter extends CustomPainter {
     canvas.drawLine(const Offset(0, 0), Offset(0, size.height), _stringsPaint);
 
     // 绘制品格线
-    // 绘制品格线
     for (int i = 1; i <= guitar.fretCount.count; i++) {
       final x = i * GuitarUI.fretStep;
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), _paint);
