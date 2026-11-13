@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:guitar_chord_helper/ui/model/guitar.dart';
+import 'package:guitar_chord_helper/ui/pages/dialog/note_dialog.dart';
+import 'package:guitar_chord_helper/ui/utils/note_utils.dart';
 import 'package:guitar_chord_helper/ui/utils/ui_utils.dart';
 
-import 'guitar_fretborad_widget.dart';
-import 'note_widget.dart';
+import '../../core/model/fret_board_note.dart';
+import '../widgets/guitar_fretborad_widget.dart';
+import '../widgets/note_widget.dart';
 
 class FretboardView extends StatefulWidget {
   const new({super.key});
@@ -18,6 +21,8 @@ class _FretboardViewState extends State<FretboardView> {
   double _thumbWidth = 50;
   final _scrollController = ScrollController();
   final _guitar = Guitar();
+
+  final _fretBoardNotes = <NotePosition, FretboardNote?>{};
 
   @override
   void initState() {
@@ -47,17 +52,16 @@ class _FretboardViewState extends State<FretboardView> {
 
   @override
   Widget build(BuildContext context) {
-    final maxThumbOffset = trackWidth - _thumbWidth; //缩略图最大块偏移量
     final guitarHeight = context.guitarHeigt;
     final guitarWidth = _guitar.fretCount.count * GuitarUI.fretStep;
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: Padding(
-            padding: EdgeInsets.only(left: 40, right: 10),
+            padding: EdgeInsets.only(left: 10, right: 10),
             child: Column(
               children: [
-                Text('asd'),
+                Text('吉他面板'),
                 _buildGuitarArea(guitarWidth, guitarHeight),
                 Text('data'),
                 SizedBox(height: 20),
@@ -77,8 +81,7 @@ class _FretboardViewState extends State<FretboardView> {
                         top: 0,
                         left: _scrollPosition,
                         child: GestureDetector(
-                          onPanUpdate: (d) =>
-                              _onUpdateScaleGuitar(d),
+                          onPanUpdate: (d) => _onUpdateScaleGuitar(d),
                           child: Container(
                             width: _thumbWidth,
                             height: 50,
@@ -89,6 +92,7 @@ class _FretboardViewState extends State<FretboardView> {
                     ],
                   ),
                 ),
+                _buildChordArea(),
               ],
             ),
           ),
@@ -113,15 +117,25 @@ class _FretboardViewState extends State<FretboardView> {
               children: List.generate(Guitar.stringsCount, (index) {
                 final y = (index + 1) * stringsStep;
                 final halfHeight = GuitarUI.fretTextHeight / 2;
+                final strings = Guitar.stringsCount - index;
                 return Positioned(
                   top: y + halfHeight,
                   left: 0,
                   right: 0,
                   height: GuitarUI.fretTextHeight,
                   child: Center(
-                    child: Text(
-                      '${Guitar.stringsCount - index}弦',
-                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    child: Row(
+                      mainAxisAlignment: .center,
+                      children: [
+                        Text(
+                          '$strings弦',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        _buildStringsState(strings),
+                      ],
                     ),
                   ),
                 );
@@ -134,6 +148,23 @@ class _FretboardViewState extends State<FretboardView> {
         ],
       ),
     );
+  }
+
+  Widget _buildStringsState(int strings) {
+    final stringsNotes = NoteUtils.getNotesByStrings(strings, _fretBoardNotes);
+    final haveNote = stringsNotes.isNotEmpty;
+    bool isOpen = false;
+    bool isMuted = false;
+    if (haveNote) {
+      isOpen = stringsNotes.any((n) => n?.state == .open);
+      isMuted = stringsNotes.any((n) => n?.state == .muted);
+    }
+    if (isMuted) {
+      return Icon(Icons.close, size: 12, color: Colors.red);
+    } else if (isOpen) {
+      return Icon(Icons.circle_outlined, size: 12, color: Colors.amber);
+    }
+    return SizedBox(width: 12);
   }
 
   Widget _buildGuitarFret(
@@ -151,14 +182,7 @@ class _FretboardViewState extends State<FretboardView> {
         height: totalHeigt,
         child: Stack(
           children: [
-            // Positioned(
-            //   top:
-            //       GuitarUI.fretTextHeight + stringsStep - GuitarUI.noteSize / 2,
-            //   left: GuitarUI.fretStep / 2 - GuitarUI.noteSize / 2,
-            //   height: GuitarUI.noteSize,
-            //   width: GuitarUI.noteSize,
-            //   child: NoteWidget(),
-            // ),
+            //guitar fretboard
             Positioned(
               top: fretHeight,
               child: CustomPaint(
@@ -169,6 +193,7 @@ class _FretboardViewState extends State<FretboardView> {
                 ),
               ),
             ),
+            //fret text
             ...List.generate(
               _guitar.fretCount.count,
               (i) => Positioned(
@@ -186,7 +211,7 @@ class _FretboardViewState extends State<FretboardView> {
                 ),
               ),
             ),
-            
+            //note area
             Positioned(
               top: 0,
               left: 0,
@@ -216,6 +241,59 @@ class _FretboardViewState extends State<FretboardView> {
         ),
       ),
     );
+  }
+
+  Widget? _buildAllNoteArea(BuildContext context, int index) {
+    final strings = 6 - index ~/ _guitar.fretCount.count;
+    final fret = index % _guitar.fretCount.count + 1;
+    final notePosition = NotePosition(strings, fret);
+    final note = _fretBoardNotes[notePosition];
+    return NoteWidget(
+      note: note,
+      touchNote: () => _onTouchNote(note, notePosition),
+    );
+  }
+
+  Widget _buildChordArea() {
+    return Text('data');
+  }
+
+  void _onTouchNote(FretboardNote? note, NotePosition notePosition) async {
+    print('string: ${notePosition.strings}, fret: ${notePosition.fret}');
+    if (note == null) {
+      //添加音符
+      _fretBoardNotes[notePosition] = FretboardNote(
+        string: notePosition.strings,
+        fret: notePosition.fret,
+      );
+
+      if (mounted) {
+        setState(() {});
+      }
+    } else {
+      final note = _fretBoardNotes[notePosition];
+      (FretboardNote?, bool) result = await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (c) => NoteDialog(note: note!),
+      );
+
+      if (mounted && result.$1 != null) {
+        //修改音符
+        final updateNote = result.$1!;
+        if (updateNote.state == .pressed) {
+          _fretBoardNotes[notePosition] = updateNote;
+        }else{
+          _fretBoardNotes[notePosition] = null;
+        }
+        _checkStringsNotes(result.$1);
+        setState(() {});
+      } else if (result.$2) {
+        //移除音符
+        _fretBoardNotes[notePosition] = null;
+        setState(() {});
+      }
+    }
   }
 
   void _onScroll() {
@@ -260,7 +338,25 @@ class _FretboardViewState extends State<FretboardView> {
     _scrollController.jumpTo(scrollOffset);
   }
 
-  Widget? _buildAllNoteArea(BuildContext context, int index) {
-    return NoteWidget(index: index);
+  ///检查弦上所有的音符是否符合状态
+  void _checkStringsNotes(FretboardNote? note) {
+    if (note == null) {
+      return;
+    }
+    if (note.state != .pressed) {
+      final notesFretList = NoteUtils.getNotesByStrings(
+        note.string,
+        _fretBoardNotes,
+      ).map((e) => e?.fret).toList();
+      print('notesFretList: $notesFretList');
+      if (notesFretList.isNotEmpty) {
+        for (var fret in notesFretList) {
+          if (fret == null) {
+            continue;
+          }
+          _fretBoardNotes[NotePosition(note.string, fret)] = null;
+        }
+      }
+    }
   }
 }

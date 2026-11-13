@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:guitar_chord_helper/ui/widgets/fretboard_view.dart';
+import 'package:guitar_chord_helper/ui/pages/fretboard_view.dart';
 
 class GuitarChordApp extends StatefulWidget {
   const new({super.key});
