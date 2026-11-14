@@ -41,16 +41,55 @@ class GuitarChordPosition {
   final List<GuitarString> strings;
 
   final Map<NotePosition, FretboardNote?> noteMap;
+   /// 当 note 被增/改时回调，参数为最新的 note
+  void Function(FretboardNote note)? onNoteChanged;
+  /// 当 note 被删时回调，参数为被删的 note（可选）
+  void Function(FretboardNote note)? onNoteRemoved;
 
-  const GuitarChordPosition({required this.strings, required this.noteMap});
+  GuitarChordPosition({required this.strings, required this.noteMap});
 
   factory GuitarChordPosition.empty() => GuitarChordPosition(
-    strings: List.generate(
-      6,
-      (index) => GuitarString(string: index + 1, state: StringState.open),
-    ),
+    strings: [
+      GuitarString(string: 1, state: StringState.open),
+      GuitarString(string: 2, state: StringState.open),
+      GuitarString(string: 3, state: StringState.open),
+      GuitarString(string: 4, state: StringState.open),
+      GuitarString(string: 5, state: StringState.open),
+      GuitarString(string: 6, state: StringState.open),
+    ],
     noteMap: {},
   );
+
+  List<GuitarString> get defaultStrings => [
+    GuitarString(string: 1, state: StringState.open),
+    GuitarString(string: 2, state: StringState.open),
+    GuitarString(string: 3, state: StringState.open),
+    GuitarString(string: 4, state: StringState.open),
+    GuitarString(string: 5, state: StringState.open),
+    GuitarString(string: 6, state: StringState.open),
+  ];
+  void addNote(NotePosition pos, FretboardNote note) {
+    noteMap[pos] = note;
+    onNoteChanged?.call(note);
+  }
+
+  void updateNote(NotePosition pos, FretboardNote note) {
+    noteMap[pos] = note;
+    onNoteChanged?.call(note);
+  }
+
+  void removeNote(NotePosition pos, {bool notify = true}) {
+    final removed = noteMap.remove(pos);
+    if (removed != null && notify) {
+      onNoteRemoved?.call(removed);
+    }
+  }
+
+  void removeAllNotes() {
+    noteMap.clear();
+    strings.clear();
+    strings.addAll(defaultStrings);
+  }
 }
 
 /// 吉他单根弦

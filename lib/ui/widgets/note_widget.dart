@@ -7,10 +7,12 @@ typedef TouchFretBoardNote = void Function();
 class NoteWidget extends StatefulWidget {
   final TouchFretBoardNote touchNote;
   final FretboardNote? note;
+  final void Function()? onMouseRight;
   const NoteWidget({
     super.key,
     required this.touchNote,
     this.note,
+    this.onMouseRight
   });
 
   @override
@@ -23,6 +25,9 @@ class _NoteWidgetState extends State<NoteWidget> {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.touchNote,
+      onSecondaryTap: () {
+        widget.onMouseRight?.call();
+      },
       child: Container(
         width: GuitarUI.fretStep,
         height: GuitarUI.noteTouchSize,

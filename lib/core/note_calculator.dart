@@ -8,7 +8,8 @@ class NoteCalculator {
     required this.tuning,
   });
 
-  GuitarNote? calculate(FretboardNote position) {
+  GuitarNote? calculate(FretboardNote? position) {
+    if (position == null) return null;
     // 闷音不产生实际音符
     if (position.state == StringState.muted) {
       return null;

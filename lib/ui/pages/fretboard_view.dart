@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:guitar_chord_helper/core/note_calculator.dart';
 import 'package:guitar_chord_helper/ui/model/guitar.dart';
 import 'package:guitar_chord_helper/ui/pages/dialog/note_dialog.dart';
 import 'package:guitar_chord_helper/ui/utils/note_utils.dart';
@@ -22,11 +23,13 @@ class _FretboardViewState extends State<FretboardView> {
   final _scrollController = ScrollController();
   final _guitar = Guitar();
 
+  late final NoteCalculator _calculator;
   final _guitarChordPosition = GuitarChordPosition.empty();
 
   @override
   void initState() {
     super.initState();
+    _calculator = NoteCalculator(tuning: _guitar.tuning);
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scrollController.hasClients) return;
@@ -41,6 +44,18 @@ class _FretboardViewState extends State<FretboardView> {
       );
       setState(() {});
     });
+
+    // 监听 note 变化
+    _guitarChordPosition.onNoteChanged = (note) {
+      _checkStringsNotes(note); // 自动触发
+      if (mounted) setState(() {});
+    };
+    _guitarChordPosition.onNoteRemoved = (note) {
+      print('remove note: $note');
+      _checkStringsNotes(note); // 自动触发
+      // 删除时如果需要也处理弦状态，可以在这里做
+      if (mounted) setState(() {});
+    };
   }
 
   @override
@@ -62,6 +77,14 @@ class _FretboardViewState extends State<FretboardView> {
             child: Column(
               children: [
                 Text('吉他面板'),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: _removeAllNotes,
+                      icon: Icon(Icons.delete),
+                    ),
+                  ],
+                ),
                 _buildGuitarArea(guitarWidth, guitarHeight),
                 Text('data'),
                 SizedBox(height: 20),
@@ -245,11 +268,51 @@ class _FretboardViewState extends State<FretboardView> {
     return NoteWidget(
       note: note,
       touchNote: () => _onTouchNote(note, notePosition),
+      onMouseRight: () => _guitarChordPosition.removeNote(notePosition),
     );
   }
 
   Widget _buildChordArea() {
-    return Text('data');
+    print('guitar count: ${_guitarChordPosition.noteMap.values.length}');
+    final allNotes = _guitarChordPosition.noteMap.values;
+    final notesString = allNotes
+        .map((e) => "${e?.string}弦 ${e?.fret}品")
+        .toList();
+    final guitarNotes = allNotes.map((e) => _calculator.calculate(e)).toList();
+    return Column(
+      children: [
+        Text('按下的音符:'),
+        Row(
+          mainAxisAlignment: .center,
+          children: [
+            SizedBox(
+              width: 70,
+              height: 70,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: List.generate(
+                    notesString.length,
+                    (i) => Text(notesString[i]),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 70,
+              height: 70,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: List.generate(
+                    guitarNotes.length,
+                    (i) => Text(guitarNotes[i]?.toString() ?? ''),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   void _onScroll() {
@@ -296,10 +359,12 @@ class _FretboardViewState extends State<FretboardView> {
 
   ///检查弦上所有的音符是否符合状态
   void _checkStringsNotes(FretboardNote? note) {
+    print('check strings notes: $note');
     if (note == null) {
       return;
     }
-    if (note.state != .pressed) {
+    StringState curState = note.state;
+    if (curState != .pressed) {
       //删除所有弦上的note
       final notesFretList = NoteUtils.getNotesByStrings(
         note.string,
@@ -311,13 +376,26 @@ class _FretboardViewState extends State<FretboardView> {
           if (fret == null) {
             continue;
           }
-          _removeNote(NotePosition(note.string, fret));
+          _guitarChordPosition.removeNote(
+            NotePosition(note.string, fret),
+            notify: false,
+          );
         }
+      }
+    }else{
+      //判断这个弦上的所有音符是否都被移除
+      final notesFretList = NoteUtils.getNotesByStrings(
+        note.string,
+        _guitarChordPosition.noteMap,
+      ).map((e) => e?.fret).toList();
+      print('notesFretList: $notesFretList');
+      if (notesFretList.isEmpty) {
+        curState = .open;
       }
     }
 
     //更新弦状态
-    _updateStringState(note.string, note.state);
+    _updateStringState(note.string, curState);
   }
 
   void _onTouchNote(FretboardNote? note, NotePosition notePosition) async {
@@ -341,14 +419,14 @@ class _FretboardViewState extends State<FretboardView> {
       if (mounted && result.$1 != null) {
         //修改音符
         final updateNote = result.$1!;
-          _updateNote(notePosition, updateNote);
+        _updateNote(notePosition, updateNote);
         if (updateNote.state != .pressed) {
-          _removeNote(notePosition);
+          _guitarChordPosition.removeNote(notePosition);
         }
         setState(() {});
       } else if (result.$2) {
         //移除音符
-        _removeNote(notePosition);
+        _guitarChordPosition.removeNote(notePosition);
         setState(() {});
       }
     }
@@ -359,18 +437,12 @@ class _FretboardViewState extends State<FretboardView> {
       string: notePosition.strings,
       fret: notePosition.fret,
     );
-    _guitarChordPosition.noteMap[notePosition] = note;
-    _checkStringsNotes(note);
+    _guitarChordPosition.addNote(notePosition, note);
   }
 
   void _updateNote(NotePosition notePosition, FretboardNote updateNote) {
-    _guitarChordPosition.noteMap[notePosition] = updateNote;
+    _guitarChordPosition.updateNote(notePosition, updateNote);
     print('updateNote: $updateNote');
-    _checkStringsNotes(updateNote);
-  }
-
-  void _removeNote(NotePosition notePosition) {
-    _guitarChordPosition.noteMap[notePosition] = null;
   }
 
   void _updateStringState(int string, StringState state) {
@@ -399,5 +471,10 @@ class _FretboardViewState extends State<FretboardView> {
       return .pressed;
     }
     return _guitarChordPosition.strings[index].state;
+  }
+
+  void _removeAllNotes() {
+    _guitarChordPosition.removeAllNotes();
+    setState(() {});
   }
 }

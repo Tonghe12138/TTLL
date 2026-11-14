@@ -48,4 +48,20 @@ class GuitarNote {
   }
 
   String get name => '${pitchClass.name}$octave';
+
+  @override
+  String toString() => name;
+
+  // == 比较两个音符是否相等
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other is! GuitarNote) return false;
+    return midiNumber == other.midiNumber;
+  }
+
+  // hashCode 比较两个音符是否相等
+  @override
+  int get hashCode => midiNumber.hashCode;
+ 
 }
