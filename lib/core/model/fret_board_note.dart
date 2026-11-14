@@ -36,6 +36,41 @@ class NotePosition {
   }
 }
 
+class GuitarChordPosition {
+  /// 六根弦的演奏状态
+  final List<GuitarString> strings;
+
+  final Map<NotePosition, FretboardNote?> noteMap;
+
+  const GuitarChordPosition({required this.strings, required this.noteMap});
+
+  factory GuitarChordPosition.empty() => GuitarChordPosition(
+    strings: List.generate(
+      6,
+      (index) => GuitarString(string: index + 1, state: StringState.open),
+    ),
+    noteMap: {},
+  );
+}
+
+/// 吉他单根弦
+class GuitarString {
+  /// 弦号：1-6
+  /// 1 是最高音弦，6 是最低音弦
+  final int string;
+
+  /// 当前弦的演奏状态
+  final StringState state;
+
+  const GuitarString({required this.string, required this.state})
+    : assert(string >= 1 && string <= 6);
+
+  @override
+  String toString() {
+    return 'GuitarString(string: $string, state: $state)';
+  }
+}
+
 ///指板上具体的音符
 class FretboardNote {
   final int string;
