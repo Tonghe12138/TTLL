@@ -50,7 +50,7 @@ class GuitarNote {
   String get name => '${pitchClass.name}$octave';
 
   @override
-  String toString() => name;
+  String toString() => '$name($midiNumber)';
 
   // == 比较两个音符是否相等
   @override

@@ -16,6 +16,11 @@ class ChordResult {
   String get name {
     return '${pitchClassNames[rootPitchClass]}${formula.suffix}';
   }
+
+  @override
+  String toString() {
+    return 'ChordResult(rootPitchClass: $rootPitchClass, formula: $formula)';
+  }
 }
 
 /// 十二音体系的音名

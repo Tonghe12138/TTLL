@@ -6,6 +6,8 @@ import 'model/fret_board_note.dart';
 abstract class ChordHelper {
   static const String chordRegex = r'([A-G][#b]?)?([0-9])?([a-zA-Z0-9])?';
 
+  static int getPitchClassOfMidi(int midi) => midi % 12;
+
   static List<Chord> getLibraryChordsByGuitar2Position(List<FretboardNote> positions) {
     if (positions.isEmpty) return [];
 

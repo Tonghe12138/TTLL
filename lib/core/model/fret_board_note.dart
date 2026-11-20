@@ -36,81 +36,70 @@ class NotePosition {
   }
 }
 
+/// 吉他和弦指位：六根弦各一个槽位，一弦一音
 class GuitarChordPosition {
-  /// 六根弦的演奏状态
-  final List<GuitarString> strings;
+  /// 弦数
+  static const int stringCount = 6;
 
-  final Map<NotePosition, FretboardNote?> noteMap;
-   /// 当 note 被增/改时回调，参数为最新的 note
-  void Function(FretboardNote note)? onNoteChanged;
-  /// 当 note 被删时回调，参数为被删的 note（可选）
-  void Function(FretboardNote note)? onNoteRemoved;
+  /// 六根弦的槽位，索引 = 6 - 弦号
+  /// 即索引 0 是 6 弦（最粗的低音弦），索引 5 是 1 弦（最高弦）
+  final List<FretboardNote> strings;
 
-  GuitarChordPosition({required this.strings, required this.noteMap});
+  /// 槽位变化时回调
+  void Function()? onChanged;
+
+  GuitarChordPosition({required this.strings})
+    : assert(strings.length == stringCount, '必须包含 $stringCount 个槽位');
 
   factory GuitarChordPosition.empty() => GuitarChordPosition(
     strings: [
-      GuitarString(string: 1, state: StringState.open),
-      GuitarString(string: 2, state: StringState.open),
-      GuitarString(string: 3, state: StringState.open),
-      GuitarString(string: 4, state: StringState.open),
-      GuitarString(string: 5, state: StringState.open),
-      GuitarString(string: 6, state: StringState.open),
+      for (var string = stringCount; string >= 1; string--)
+        FretboardNote(string: string, fret: 0, state: StringState.open),
     ],
-    noteMap: {},
   );
 
-  List<GuitarString> get defaultStrings => [
-    GuitarString(string: 1, state: StringState.open),
-    GuitarString(string: 2, state: StringState.open),
-    GuitarString(string: 3, state: StringState.open),
-    GuitarString(string: 4, state: StringState.open),
-    GuitarString(string: 5, state: StringState.open),
-    GuitarString(string: 6, state: StringState.open),
-  ];
-  void addNote(NotePosition pos, FretboardNote note) {
-    noteMap[pos] = note;
-    onNoteChanged?.call(note);
+  /// 按弦号取槽位
+  FretboardNote noteOf(int string) => strings[stringCount - string];
+
+  /// 实际发声的槽位（闷音不发声），顺序为 6 弦 → 1 弦
+  List<FretboardNote> get soundedNotes =>
+      strings.where((note) => note.state != StringState.muted).toList();
+
+  /// 设置某根弦的槽位，同一根弦上原有的音会被覆盖
+  void setNote(
+    int string, {
+    required StringState state,
+    int fret = 0,
+    int? finger,
+  }) {
+    strings[stringCount - string] = FretboardNote(
+      string: string,
+      fret: fret,
+      state: state,
+      finger: finger,
+    );
+    onChanged?.call();
   }
 
-  void updateNote(NotePosition pos, FretboardNote note) {
-    noteMap[pos] = note;
-    onNoteChanged?.call(note);
+  /// 取消按弦，回到空弦
+  void clearString(int string) {
+    setNote(string, state: StringState.open);
   }
 
-  void removeNote(NotePosition pos, {bool notify = true}) {
-    final removed = noteMap.remove(pos);
-    if (removed != null && notify) {
-      onNoteRemoved?.call(removed);
+  /// 重置所有弦为空弦
+  void clearAll() {
+    for (var string = 1; string <= stringCount; string++) {
+      strings[stringCount - string] = FretboardNote(
+        string: string,
+        fret: 0,
+        state: StringState.open,
+      );
     }
-  }
-
-  void removeAllNotes() {
-    noteMap.clear();
-    strings.clear();
-    strings.addAll(defaultStrings);
+    onChanged?.call();
   }
 }
 
-/// 吉他单根弦
-class GuitarString {
-  /// 弦号：1-6
-  /// 1 是最高音弦，6 是最低音弦
-  final int string;
-
-  /// 当前弦的演奏状态
-  final StringState state;
-
-  const GuitarString({required this.string, required this.state})
-    : assert(string >= 1 && string <= 6);
-
-  @override
-  String toString() {
-    return 'GuitarString(string: $string, state: $state)';
-  }
-}
-
-///指板上具体的音符
+///指板上具体的音符（同时作为一根弦的槽位）
 class FretboardNote {
   final int string;
 

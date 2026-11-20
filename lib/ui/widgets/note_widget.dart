@@ -51,7 +51,7 @@ class _NoteWidgetState extends State<NoteWidget> {
       decoration: BoxDecoration(shape: BoxShape.circle, color: isOpenNote ? Colors.amber :Colors.blue),
       alignment: Alignment.center,
       child: Text(
-        isOpenNote ? '0' : (finger == null ? '?' : finger.toString()),
+        isOpenNote ? '0' : (finger == null ? ' ' : finger.toString()),
         style: TextStyle(color: Colors.white, fontSize: 15),
       ),
     );
